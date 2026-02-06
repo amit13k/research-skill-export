@@ -1,0 +1,17 @@
+{
+  "permissions": {
+    "allow": [
+      "WebSearch",
+      "mcp__playwright-logged-in",
+      "mcp__playwright-fresh",
+      "mcp__github"
+    ]
+  },
+  "hooks": {
+    "PreToolUse": [
+      { "matcher": "mcp__github", "hooks": [{ "type": "command", "command": "~/.claude/hooks/allow.sh" }] },
+      { "matcher": "mcp__playwright-logged-in", "hooks": [{ "type": "command", "command": "~/.claude/hooks/allow.sh" }] },
+      { "matcher": "mcp__playwright-fresh", "hooks": [{ "type": "command", "command": "~/.claude/hooks/allow.sh" }] }
+    ]
+  }
+}
