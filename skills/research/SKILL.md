@@ -14,12 +14,21 @@ Lightweight orchestrator for comprehensive multi-source research. Delegates to s
 
 > **OFFICIAL SOURCE FIRST RULE: ALWAYS identify and read the official source BEFORE any third-party coverage.** For any product/tool/announcement being researched, your FIRST page read MUST be the official website, docs, blog post, or paper — never a VentureBeat/TechCrunch/Medium summary. If you don't know the official source, your first action after Google search results is to find it (look for the company's own domain in results, or do a targeted `site:<company-domain>` search). Third-party articles are only read AFTER the official source.
 
+> **PRACTICALITY RULE (for "easiest/best/popular" queries): OFFICIAL + POPULAR.** After reading official docs, you MUST also search for the most adopted real-world path (integrations, plugins, wrappers, dashboards, community-standard tooling). Do not stop at the official method if the user asked for easiest/common/popular workflow.
+
+> **INTENT CLARIFICATION FIRST RULE (MANDATORY):** Before running any web search, ask a targeted clarifying question to lock scope and provider/context. Do not start external searches until the user answers. Exception: skip only when scope is already explicit and singular (e.g., user names one exact product + account type + environment).
+
+> **RE-CLARIFICATION RULE (MANDATORY):** Clarification is not one-and-done. If new evidence mid-research creates ambiguity, conflicts with user assumptions, or opens multiple valid interpretations, pause and ask another targeted question before continuing. Ask as many clarification rounds as needed to keep scope correct.
+
+> **DISCOVERY-THEN-CLARIFY RULE (MANDATORY):** If the query is too unknown to ask a meaningful clarifying question at the start, do a tiny reconnaissance pass (usually 1-2 high-signal reads) only to learn the landscape, then stop and ask a scoped clarification question before deeper research.
+
 ## What I Do
 
 - **Orchestrate** multiple search sources in parallel for speed
 - **Delegate** to specialized skills for each source (Google, Reddit, HN, GitHub)
 - **Read and extract** key information from the most relevant pages
 - **Intelligent link exploration (Best-First Search)** — discovered URLs are scored by a Promise Score heuristic (relevance, credibility, novelty, context). Always reads the most promising unread link next, regardless of depth. No fixed depth limit — depth emerges from scoring and diminishing returns detection
+- **Surface practical paths** — include popular community solutions and ecosystem integrations when users ask for easiest/common approaches
 - **Synthesize** findings into a clear, sourced summary
 - **Adapt search strategy** based on topic type
 
@@ -54,6 +63,59 @@ This skill orchestrates these individual skills. **Load them dynamically** as ne
 **How to load:** After classifying the topic (Step 0) and selecting sources (Step 1), call the `Skill` tool for each needed skill before executing searches. Each skill contains its own search patterns, scripts, and best practices.
 
 ## Research Workflow
+
+### Step -2: Clarify Intent First (MANDATORY)
+
+Before any search, ask one concise question that resolves the highest-impact ambiguity.
+
+**Required for these query types:**
+- usage, limits, quota, billing, pricing, "how much used"
+- provider-ambiguous product names (e.g., Codex could mean ChatGPT plan Codex, OpenAI API Codex usage, or third-party routed usage)
+- "easiest way" requests where environment/account choice changes the best answer
+- unknown/novel topics where initial wording is broad and could map to multiple ecosystems
+
+**Question design rules (per round):**
+1. Ask exactly one question at a time.
+2. Offer 2-4 concrete options plus custom input.
+3. Put the recommended default first.
+4. State what changes based on the answer.
+5. If ambiguity remains after the answer, ask the next highest-impact question.
+
+**Codex example (must use this pattern):**
+"Which Codex usage do you want to track? (A) ChatGPT plan usage, (B) OpenAI API usage, (C) OpenRouter/provider-routed usage. This changes the dashboard and commands I should use."
+
+If user does not answer, proceed with the clearly stated default and label assumptions explicitly.
+
+If you cannot form concrete options yet, run Step -2.5 first.
+
+### Step -2.5: Minimal Reconnaissance for Better Questions (ONLY when needed)
+
+Use only when you genuinely cannot ask a meaningful clarification question yet.
+
+Rules:
+1. Read at most 1-2 high-signal sources (official landing/docs first).
+2. Extract candidate interpretations (product type, provider, account model, environment constraints).
+3. Stop reconnaissance immediately.
+4. Ask a clarifying question with concrete options based on what you learned.
+5. Continue full research only after clarification (or explicit default assumption).
+
+### Step -1.5: Clarification Loop During Research (MANDATORY)
+
+Run this check after each wave and before final synthesis.
+
+Trigger a re-clarification question if any of these occur:
+- New evidence indicates a different provider/account context than assumed
+- Multiple products share the same name (or overlapping branding)
+- User asked for "easiest" but evidence splits by environment/stack
+- Findings conflict across sources and the right answer depends on user preference (speed vs cost vs control)
+- You cannot produce one unambiguous recommendation without guessing
+- Early exploration changed your mental model of what the user might mean
+- New terminology appears that implies different intent than the original phrasing
+
+When triggered:
+1. Pause new searches.
+2. Ask one targeted question that unlocks the decision.
+3. Resume searches only after answer (or explicit default assumption).
 
 ### Step -1: Load Research Memory
 
@@ -93,6 +155,22 @@ Also assess how time-sensitive the topic is. This determines search filtering an
 | **Evergreen** | Concepts, algorithms, "how does X work" | No time filter needed, but still prefer recent sources when quality is equal |
 
 **Default to "Evolving"** if unsure — most research questions benefit from recency bias. Only skip time filtering for truly timeless topics.
+
+#### Intent Lens (MANDATORY)
+
+Before searching, classify user intent keywords and enforce matching output requirements:
+
+- **Ease intent** (`easiest`, `simplest`, `quickest`, `fastest`): return a default path with the fewest steps and lowest setup overhead.
+- **Adoption intent** (`popular`, `common`, `most used`, `recommended`): include popularity evidence (stars, active maintenance, repeated mentions, docs maturity).
+- **Ecosystem intent** (`integration`, `plugin`, `extension`, `connector`, `works with`): explicitly search integration/plugin surfaces, not just core docs.
+
+If any of these intents are present, the final answer MUST include:
+1. one official path,
+2. one popular ecosystem path,
+3. a short recommendation of which to pick first and why.
+
+If Step -2 clarification has not been completed for an ambiguous query, do not execute Step 1 searches yet.
+If Step -1.5 triggers during research, pause Step 2 and re-clarify before continuing.
 
 #### Identifying the Official Forum
 
@@ -164,6 +242,10 @@ Before searching, generate **3 distinct query framings** for the research questi
 
 **Memory boost:** If research memory (Step -1) provided query patterns that worked for this topic, use those as a 4th framing or to refine the three above.
 
+**Extra framing for practicality queries:** When the prompt includes ease/adoption/ecosystem intent, run a 4th query framing:
+- **Ecosystem framing** — search for integrations/plugins/wrappers users actually deploy.
+- Pattern examples: `"<product> plugin"`, `"<product> integration"`, `"<product> dashboard"`, `"awesome <product>"`, `"<product> self-hosted"`.
+
 ### Step 1: Load Skills & Launch Parallel Searches
 
 **Load the needed skills** via the `Skill` tool, then execute searches following each skill's instructions.
@@ -207,6 +289,19 @@ For deep research, also search directly within the forum:
 - For **Deep research** on any topic
 - Skip for generic **Opinion/Experience** questions
 
+#### 1f. Ecosystem/Plugin Search (for integration-heavy or "easiest" queries)
+
+When the user asks for easiest/common setup, explicitly search these surfaces:
+
+- Official integration directories/marketplaces (if available)
+- GitHub queries for wrappers/proxies/connectors around the product
+- Community "awesome-*" lists and highly starred integrations
+
+Then rank options by:
+1. setup time,
+2. operational complexity,
+3. adoption evidence.
+
 ### Step 2: Intelligent Source Exploration (Best-First Search)
 
 Research is **best-first search on an unknown information graph**. URLs are nodes. Pages contain edges (links to deeper content). You maintain a mental **priority queue** of all discovered URLs, always reading the most promising unread one next — regardless of what depth level it sits at.
@@ -219,13 +314,13 @@ There is no fixed "initial reads" vs "follow-up reads" split. There is no hard d
 QUEUE: all discovered URLs, each with a Promise Score
 VISITED: set of URLs already read
 FINDINGS: accumulated research knowledge
-budget_remaining: 8
+continue_research: true
 
 1. SEED — Add all URLs from Step 1 searches to QUEUE at depth 0
 2. SCORE — Compute Promise Score for every URL in QUEUE
 3. READ — Pop the highest-scored unread URL
    - Route to skill (Reddit/GitHub/HN) or delegate to subagent
-   - Mark as VISITED, decrement budget_remaining
+   - Mark as VISITED
 4. HARVEST — Extract new links from the page (subagents return DISCOVERED_LINKS)
    - Add new links to QUEUE at depth = parent_depth + 1
    - Score each new link
@@ -269,11 +364,11 @@ Notice: the depth-1 docs link ties with the depth-0 official post at 77. **That'
 
 Stop exploring when ANY of these fire:
 
-1. **Budget exhausted** — 8 total page reads consumed
-2. **Diminishing returns** — After ≥3 reads, the last 2 reads each had INFO_GAIN of LOW or NONE (just confirming what you already know)
-3. **Queue starved** — No unread URLs remain with Promise Score ≥ 20
-4. **Confident answer** — You have thorough coverage from 3+ credible sources and can fully answer the research question. **But first, pass the Answer-Completeness Gate (see below).**
-5. **Saturation** — Same facts/conclusions keep appearing across different sources — you've hit the information frontier
+1. **Diminishing returns** — repeated reads mostly confirm what you already know
+2. **Queue starved** — no promising unread URLs remain
+3. **Confident answer** — you can fully answer the specific question. **But first, pass the Answer-Completeness Gate (see below).**
+4. **Saturation** — same facts/conclusions keep repeating across independent sources
+5. **User stop signal** — user asks to stop/ship current findings
 
 **No fixed depth limit.** A rich trail of official documentation might warrant reading 4 levels deep. A dead-end blog post gets 0 follow-ups. Depth is emergent from the scoring. Trust the heuristic.
 
@@ -288,6 +383,8 @@ Before triggering the "Confident answer" stop, explicitly verify alignment betwe
 - Question asks "how to do X" → you know X exists and is good, but not the actual steps
 - Question asks "X vs Y" → you deeply researched X but barely touched Y
 - Question asks about a specific feature → you have general product overview but nothing on that feature
+- Question asks for "easiest/common" way → you returned only official docs and skipped dominant integrations/plugins users actually use
+- Question is provider/account ambiguous → you researched the wrong ecosystem (e.g., OpenRouter vs ChatGPT plan Codex)
 
 **If the gate fails:** Do NOT stop. Instead, identify what's missing and target it — the missing aspect likely needs a read of the primary artifact (repo README, docs page, config reference) or a more specific search query. Resume the wave pattern.
 
@@ -389,6 +486,7 @@ After these priority reads are done, the Promise Score governs all remaining rea
 - **Staff/maintainer responses** in official forums or GitHub issues
 - **Primary sources**: The actual announcement, the actual changelog, the actual benchmark — not someone's summary of it
 - **Contrarian evidence**: Sources that challenge the prevailing narrative deserve a read — they either expose real issues or strengthen the consensus by forcing you to evaluate it
+- **Adoption evidence**: high stars/forks/downloads, active recent releases, broad mention across independent sources
 
 #### When to skip subagents
 
@@ -440,6 +538,11 @@ After each wave of reads returns, pause and explicitly reflect. This is the sing
    - If official docs were the goldmine, look for deeper docs pages
    - If a specific person/author keeps appearing, search for their other work directly
 
+5. **Did I learn something that changes user intent scope?**
+   - If yes, trigger Step -1.5 and ask a clarification question before more searching
+6. **Was my initial interpretation likely wrong or incomplete?**
+   - If yes, ask a re-clarification question immediately (do not continue searching on the old track)
+
 **Output of reflection**: 0-2 new Google searches using terms you couldn't have generated at the start. These get executed immediately, and their results enter the queue to compete with everything else.
 
 **Example reflection in action:**
@@ -475,6 +578,11 @@ Present findings in this format:
 
 ### Community Sentiment (if applicable)
 [What Reddit/HN users are saying - positive, negative, concerns]
+
+### Recommended Path (for "easiest/best/popular" queries)
+- Default recommendation: [the easiest path you recommend first]
+- Why: [1-2 concrete reasons: fewer steps, better adoption, lower ops burden]
+- Alternative: [official-native or more advanced option]
 
 ### Sources
 - [Source Title](URL) - brief note on what it covers *(date if known)*
@@ -581,16 +689,15 @@ browser_run_code({ code: `async (page) => {
 - If you find the official documentation/announcement, read it first
 
 ### Depth Control
-- **Quick research** (simple factual question): Google + 1 page read = done
-- **Standard research** (how-to, new feature): Google + Reddit + official forum + 2-3 page reads
-- **Deep research** (complex topic, many opinions): All sources + official forum `site:` search + 3-5 page reads
+- **Quick research** (simple factual question): use only enough reads to answer confidently
+- **Standard research** (how-to, new feature): cover official source plus the most relevant community/implementation evidence
+- **Deep research** (complex topic, many opinions): expand breadth and depth until additional reads stop improving the answer
 
-### Hard Limits
-- Max 8 page reads per research session (allocated dynamically by Best-First Search — no fixed split between initial and follow-up reads)
-- Max 3 Reddit threads for comment extraction
-- Max 10 sources in final report
-- No fixed depth limit — depth governed by Promise Score decay and stopping conditions
-- Stop when: diminishing returns detected, queue starved below score 20, confident answer reached, or budget exhausted
+### Research Boundaries (soft guidance)
+- No fixed depth limit — let Promise Score and usefulness drive exploration
+- Prefer stopping when additional reads stop changing the answer
+- Users can stop research at any point; provide best-so-far synthesis on request
+- Scale source count to question complexity (concise for simple asks, broader for deep dives)
 
 ## Browser Allocation
 
@@ -610,8 +717,13 @@ For topics released in the last few hours/minutes:
 
 - **Don't read third-party summaries before the official source** — if Anthropic announced something, read `anthropic.com/blog` first, not VentureBeat's summary of it. Third-party articles add commentary but lose technical detail.
 - **Don't skip finding the official source** — if you don't know the official site for a product, find it first (scan Google results for company domains, or search `<product> official site`). Never assume a third-party article is "good enough."
+- **Don't assume official == easiest** — when asked for easiest/common workflow, validate what users actually deploy (integrations, plugins, wrappers) and compare it against the official route.
+- **Don't skip ecosystem search for integration-heavy products** — if plugins/connectors/marketplaces exist, they are part of the answer, not optional trivia.
+- **Don't start searching before intent is clarified** — for ambiguous queries, ask one scope-defining question first (provider/account/context) to avoid wasted research.
+- **Don't treat clarification as one-time** — if ambiguity appears mid-research, pause and ask again.
+- **Don't over-research before clarifying** — if initial understanding is weak, do minimal reconnaissance only, then clarify before deeper searches.
 - Don't search all sources for simple factual questions (Google alone suffices)
-- Don't read 10+ pages — synthesize from 3-5 good sources
+- Don't keep reading mechanically — stop when new reads no longer improve the answer
 - Don't include low-quality Reddit posts (score < 10) in findings
 - Don't present raw search results — always synthesize into insights
 - Don't sequentially search when you can search in parallel

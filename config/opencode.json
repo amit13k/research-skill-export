@@ -22,14 +22,10 @@
       "enabled": true
     },
     "github": {
-      "type": "local",
-      "command": [
-        "npx",
-        "-y",
-        "@anthropic-ai/github-mcp-server"
-      ],
-      "environment": {
-        "GITHUB_PERSONAL_ACCESS_TOKEN": "{env:GITHUB_PERSONAL_ACCESS_TOKEN}"
+      "type": "http",
+      "url": "https://api.githubcopilot.com/mcp/",
+      "headers": {
+        "Authorization": "Bearer <YOUR_GITHUB_PAT_TOKEN>"
       },
       "enabled": true
     }

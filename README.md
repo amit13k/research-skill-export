@@ -6,12 +6,13 @@ A comprehensive multi-source research system for Claude Code that orchestrates G
 
 When you say "research X" or "find out about X", Claude Code will:
 
-1. **Classify** the topic (tech, product, news, opinion, how-to, troubleshooting)
-2. **Generate diverse queries** using vocabulary expansion (3 different framings)
-3. **Search in parallel** across Google, Reddit, HN, GitHub, and official forums
-4. **Read pages intelligently** using Best-First Search with a Promise Score heuristic
-5. **Follow links** into deeper content (docs, papers, changelogs) when promising
-6. **Synthesize** findings into a sourced summary with community sentiment
+1. **Clarify intent** — asks a targeted question to lock scope before searching (for ambiguous queries)
+2. **Classify** the topic (tech, product, news, opinion, how-to, troubleshooting)
+3. **Generate diverse queries** using vocabulary expansion (3 different framings)
+4. **Search in parallel** across Google, Reddit, HN, GitHub, and official forums
+5. **Read pages intelligently** using Best-First Search with a Promise Score heuristic
+6. **Follow links** into deeper content (docs, papers, changelogs) when promising — no fixed depth limit
+7. **Synthesize** findings into a sourced summary with community sentiment
 
 ## Architecture
 
@@ -132,6 +133,10 @@ The research skill triggers on natural language — "research", "find out about"
 
 ## How It Works
 
+### Intent Clarification
+
+Before searching, the skill asks a targeted clarifying question when the query is ambiguous (e.g., provider-specific products, usage/billing questions, "easiest way" requests). This prevents wasted research on the wrong scope.
+
 ### Best-First Search with Promise Scoring
 
 The research skill doesn't just read the first Google results. It maintains a priority queue of all discovered URLs and scores each one:
@@ -143,19 +148,23 @@ The research skill doesn't just read the first Google results. It maintains a pr
 | Novelty | 0-25 | Would this add NEW information vs what's already known? |
 | Context | 0-20 | Linked from authoritative page? Recent? High engagement? |
 
-Depth decays the score gently (x0.9 per level), but a high-value deep link can outrank a mediocre shallow one.
+Depth decays the score gently (x0.9 per level), but a high-value deep link can outrank a mediocre shallow one. There is no fixed depth limit — depth is governed by scoring and diminishing returns.
 
 ### Stopping Conditions
 
 Research stops when any of:
-- Budget exhausted (8 page reads)
 - Diminishing returns (last 2 reads confirmed existing knowledge)
 - Queue starved (no URLs with score >= 20)
 - Confident answer reached (verified via Answer-Completeness Gate)
+- Saturation (same facts keep appearing across independent sources)
 
 ### Official Source First
 
 The skill always reads the official source before any third-party coverage. If Anthropic announced something, it reads anthropic.com first, not a TechCrunch summary.
+
+### Ecosystem & Practicality Search
+
+When asked for the "easiest" or "most common" approach, the skill doesn't stop at official docs — it also searches for popular integrations, plugins, wrappers, and community-standard tooling that users actually deploy.
 
 ## File Structure
 
@@ -226,7 +235,7 @@ Memory files are stored in `~/.claude/skills/research/memory/`. The `_general.md
 | MCP servers | `~/.claude.json` (`mcpServers`) | `opencode.json` (`mcp`) | Different format — needs translation |
 | Hooks (auto-allow) | `~/.claude/hooks/` | Not supported | Use `permission` config instead |
 | Settings (deny WebFetch) | `settings.json` | Not applicable | OpenCode doesn't have WebFetch |
-| GitHub MCP | HTTP via Copilot endpoint | stdio via npm package | Different server, same MCP tools |
+| GitHub MCP | HTTP via Copilot endpoint | HTTP via Copilot endpoint | Same endpoint, different config format |
 
 ### Step 1: Install MCP Servers
 
@@ -252,10 +261,10 @@ Add or merge this into your `~/.config/opencode/opencode.json` (or project-level
       "enabled": true
     },
     "github": {
-      "type": "local",
-      "command": ["npx", "-y", "@anthropic-ai/github-mcp-server"],
-      "environment": {
-        "GITHUB_PERSONAL_ACCESS_TOKEN": "{env:GITHUB_PERSONAL_ACCESS_TOKEN}"
+      "type": "http",
+      "url": "https://api.githubcopilot.com/mcp/",
+      "headers": {
+        "Authorization": "Bearer <YOUR_GITHUB_PAT_TOKEN>"
       },
       "enabled": true
     }
@@ -264,10 +273,9 @@ Add or merge this into your `~/.config/opencode/opencode.json` (or project-level
 ```
 
 **Key differences from Claude Code:**
-- `"type": "local"` instead of `"type": "stdio"`
+- `"type": "local"` instead of `"type": "stdio"` for Playwright (stdio commands)
+- `"type": "http"` works the same way for the GitHub MCP endpoint
 - `"command"` is an **array** (not a string + separate `"args"`)
-- `"environment"` instead of `"env"`, and supports `{env:VAR}` syntax for reading from shell environment
-- GitHub MCP uses the `@anthropic-ai/github-mcp-server` npm package (stdio) instead of the Copilot HTTP endpoint
 - `--isolated=false` on `playwright-logged-in` ensures it reuses your Chrome profile properly
 
 **Set your GitHub token:**
@@ -275,6 +283,8 @@ Add or merge this into your `~/.config/opencode/opencode.json` (or project-level
 export GITHUB_PERSONAL_ACCESS_TOKEN="ghp_your_token_here"
 # Add to ~/.bashrc or ~/.zshrc to persist
 ```
+
+> **Note:** Older OpenCode guides may reference `@anthropic-ai/github-mcp-server` as a stdio-based GitHub MCP. This npm package can fail with 404 errors. The HTTP endpoint (`https://api.githubcopilot.com/mcp/`) is the recommended approach — it works for both Claude Code and OpenCode.
 
 ### Step 2: Install Skills
 
@@ -338,7 +348,7 @@ Then update the `--user-data-dir` path in your `opencode.json` to point to it.
 
 1. **No WebFetch to block** — OpenCode doesn't have a built-in WebFetch tool, so the `deny: ["WebFetch"]` setting is irrelevant. The skills already use Playwright for all page reading.
 
-2. **GitHub MCP server is different** — Claude Code uses the Copilot HTTP endpoint (`https://api.githubcopilot.com/mcp`), but OpenCode typically uses the stdio-based `@anthropic-ai/github-mcp-server` npm package. The MCP tools exposed are the same (`mcp__github__search_issues`, etc.), so the skills work unchanged.
+2. **GitHub MCP uses same HTTP endpoint** — Both Claude Code and OpenCode now use the Copilot HTTP endpoint (`https://api.githubcopilot.com/mcp/`). The MCP tools exposed are the same (`mcp__github__search_issues`, etc.), so the skills work unchanged.
 
 3. **Skill invocation** — In Claude Code you invoke skills with `/research` or via the `Skill` tool. In OpenCode, skills are loaded via the native `skill` tool the same way. The research skill's sub-skill loading (calling `Skill` tool for `google-search-browser`, `reddit-search`, etc.) works identically.
 
@@ -353,4 +363,4 @@ Then update the `--user-data-dir` path in your `opencode.json` to point to it.
 - **WebFetch is blocked** (Claude Code) — all page reading goes through Playwright browsers for reliability
 - **GitHub CLI (`gh`) is avoided** — GitHub MCP tools are used instead for structured API access
 - The auto-allow hook (Claude Code) means MCP tool calls won't prompt you for permission every time
-- The research skill has a hard limit of 8 page reads per session to keep context manageable
+- The research skill dynamically scales depth based on topic complexity — simple questions get quick answers, complex topics get deeper investigation
